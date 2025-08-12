@@ -87,7 +87,6 @@
       transition: background-color 0.3s;
       font-size: 14px;
       white-space: nowrap;
-      user-select: none;
     }
 
     button:hover {
@@ -127,7 +126,6 @@
       display: grid;
       grid-template-columns: 1fr 360px;
       gap: 16px;
-      transition: all 0.3s ease;
     }
 
     main {
@@ -248,28 +246,8 @@
       width: 280px;
       margin: 12px auto 0 auto;
       display: flex;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .flash-buttons button {
-      font-size: 18px;
-      padding: 10px 18px;
-      border-radius: 10px;
-      user-select: none;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    /* Iconları Unicode ile */
-    .icon-left::before {
-      content: "<";
-      font-weight: 700;
-    }
-    .icon-right::after {
-      content: ">";
-      font-weight: 700;
+      justify-content: space-between;
+      gap: 10px;
     }
 
     /* Responsive */
@@ -327,43 +305,19 @@
       order: 1;
     }
 
-    /* Sağdaki kelimeler paneli gizleme durumu */
-    .sidebar-hidden .grid {
-      grid-template-columns: 1fr !important;
-    }
-    .sidebar-hidden aside {
-      display: none;
-    }
-
-    /* Toggle panel button */
-    #toggleSidebarBtn {
-      background: var(--accent2);
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-size: 14px;
-      user-select: none;
-      cursor: pointer;
-      color: white;
-      border: none;
-      margin-left: 12px;
-      white-space: nowrap;
-      flex-shrink: 0;
-      transition: background-color 0.3s;
-    }
-    #toggleSidebarBtn:hover {
-      background: var(--accent);
-    }
   </style>
 </head>
 <body>
-  <div class="container" id="container">
+  <div class="container">
     <header>
       <div>
         <h1>Kelime Kartları</h1>
         <small>Türkçe ↔ English — Flashcards & Matching (basit)</small>
       </div>
       <div class="controls">
-        <button id="toggleSidebarBtn" title="Kelime Listesini Göster/Gizle">Kelimeler Paneli</button>
+        <label for="sheetUrl">Google Sheet CSV URL:</label>
+        <input id="sheetUrl" placeholder="(opsiyonel) Publish to web -> CSV URL" />
+        <button id="loadSheet">Yükle</button>
       </div>
     </header>
 
@@ -377,6 +331,7 @@
             <input id="filter" placeholder="Ara..." style="flex-grow:1; min-width:120px;" />
             <div style="margin-left:auto;display:flex;gap:12px;align-items:center;min-width:130px;">
               <div id="scoreDisplay" class="status">Puan: 0</div>
+              <!-- Süre gizlendi -->
             </div>
           </div>
         </div>
@@ -387,7 +342,7 @@
 
       </main>
 
-      <aside id="sidebarPanel">
+      <aside>
         <div class="panel" style="margin-bottom:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
             <strong>Kelimeler</strong>
@@ -436,11 +391,16 @@
     let matchedCount = 0;
     let score = 0;
 
+    // timer - artık kullanılmayacak
+    // const TIME_DEFAULT = 60; 
+    // let timeLeft = TIME_DEFAULT;
+    // let timerId = null;
+
     // Local storage keys
     const LS_WORDS = 'kk_words_v1';
     const LS_PROGRESS = 'kk_progress_v1';
-    const LS_SIDEBAR = 'kk_sidebar_visible';
 
+    // Bu değişken eşleştirme modunda kullanılacak kelime seti (max 10 kelime)
     let matchWordsSet = [];
 
     // ------------------ UTIL ------------------
@@ -477,6 +437,8 @@
       if (el) el.textContent = 'Puan: ' + score;
     }
 
+    // TIMER İŞLEVLERİ KALDIRILDI (artık kullanılmıyor)
+
     // ------------------ CSV Parser (basit) ------------------
     function parseCSV(text) {
       const rows = text
@@ -485,6 +447,7 @@
         .filter((r) => r.length);
       const result = [];
       let start = 0;
+      // detect header
       const first = rows[0].split(',').map((c) => c.trim().toLowerCase());
       if (first.includes('english') || first.includes('turkish')) start = 1;
       for (let i = start; i < rows.length; i++) {
@@ -518,10 +481,12 @@
       document.getElementById('sheetUrl').value = sheetCsvUrl;
       renderList();
       updateScoreDisplay();
+      // TIMER GÖSTERGESİ ARTIK YOK
 
       updateModeButtons();
 
       if (!mode) {
+        // mod seçilmemişse boş alan göster
         document.getElementById('mainArea').innerHTML =
           '<div style="text-align:center; padding:40px; color: var(--muted); font-size: 18px;">Lütfen mod seçin</div>';
         saveWordsToLS();
@@ -567,21 +532,23 @@
         area.innerHTML = '<div style="text-align:center; padding:40px;">Veri yok. CSV yükleyin veya import edin.</div>';
         return;
       }
-      const list = words;
 
-      // Kart oluştur
+      const list = words; // tüm kelimeler
+
+      // Flashcard container
       const card = document.createElement('div');
       card.className = 'flashcard';
 
+      // Card inner (döner)
       const inner = document.createElement('div');
       inner.className = 'card-inner';
 
-      // Ön yüz: İngilizce
+      // Front side: İngilizce kelime
       const front = document.createElement('div');
       front.className = 'card-front';
       front.textContent = list[currentIndex].english;
 
-      // Arka yüz: Türkçe
+      // Back side: Türkçe çeviri
       const back = document.createElement('div');
       back.className = 'card-back';
       back.textContent = list[currentIndex].turkish;
@@ -591,35 +558,33 @@
       card.appendChild(inner);
       area.appendChild(card);
 
-      // Kart tıklama ile dönme
+      // Kart tıklama
       card.onclick = () => {
         inner.classList.toggle('flipped');
       };
 
-      // Butonlar container
+      // Flashcard Next / Back butonları
       const btnContainer = document.createElement('div');
       btnContainer.className = 'flash-buttons';
 
-      // Back buton
       const backBtn = document.createElement('button');
-      backBtn.innerHTML = '<span class="icon-left"></span> Back';
+      backBtn.textContent = 'Back';
       backBtn.onclick = (e) => {
         e.stopPropagation();
-        currentIndex = (currentIndex - 1 + words.length) % words.length;
+        currentIndex = (currentIndex - 1 + list.length) % list.length;
         inner.classList.remove('flipped');
-        front.textContent = words[currentIndex].english;
-        back.textContent = words[currentIndex].turkish;
+        front.textContent = list[currentIndex].english;
+        back.textContent = list[currentIndex].turkish;
       };
 
-      // Next buton
       const nextBtn = document.createElement('button');
-      nextBtn.innerHTML = 'Next <span class="icon-right"></span>';
+      nextBtn.textContent = 'Next';
       nextBtn.onclick = (e) => {
         e.stopPropagation();
-        currentIndex = (currentIndex + 1) % words.length;
+        currentIndex = (currentIndex + 1) % list.length;
         inner.classList.remove('flipped');
-        front.textContent = words[currentIndex].english;
-        back.textContent = words[currentIndex].turkish;
+        front.textContent = list[currentIndex].english;
+        back.textContent = list[currentIndex].turkish;
       };
 
       btnContainer.appendChild(backBtn);
@@ -647,8 +612,14 @@
         matchWordsSet = words.slice(0, 10);
       }
 
+      // Solda İngilizce, sağda Türkçe olacak şekilde ayarlama
       // Tile objeleri: {id, text, lang, cls}
-      // Solda Türkçe, sağda İngilizce (istenen: solda Türkçe, sağda İngilizce)
+      const englishTiles = matchWordsSet.map((w, idx) => ({
+        id: idx,
+        text: w.english,
+        lang: 'eng',
+        cls: 'eng'
+      }));
 
       const turkishTiles = matchWordsSet.map((w, idx) => ({
         id: idx,
@@ -657,30 +628,23 @@
         cls: 'turk'
       }));
 
-      const englishTiles = matchWordsSet.map((w, idx) => ({
-        id: idx,
-        text: w.english,
-        lang: 'eng',
-        cls: 'eng'
-      }));
-
       // Karıştır
-      shuffleArray(turkishTiles);
       shuffleArray(englishTiles);
+      shuffleArray(turkishTiles);
 
       // Board container (grid 2 sütun)
       const board = document.createElement('div');
       board.id = 'board';
 
-      // Sütun 1 - Türkçe
+      // Sütun 1 - İngilizce
       const leftCol = document.createElement('div');
       leftCol.style.display = 'flex';
       leftCol.style.flexDirection = 'column';
       leftCol.style.gap = '10px';
 
-      turkishTiles.forEach((tile) => {
+      englishTiles.forEach((tile) => {
         const t = document.createElement('div');
-        t.className = 'tile turk';
+        t.className = 'tile eng';
         t.textContent = tile.text;
         t.dataset.id = tile.id;
         t.dataset.lang = tile.lang;
@@ -698,15 +662,15 @@
         leftCol.appendChild(t);
       });
 
-      // Sütun 2 - İngilizce
+      // Sütun 2 - Türkçe
       const rightCol = document.createElement('div');
       rightCol.style.display = 'flex';
       rightCol.style.flexDirection = 'column';
       rightCol.style.gap = '10px';
 
-      englishTiles.forEach((tile) => {
+      turkishTiles.forEach((tile) => {
         const t = document.createElement('div');
-        t.className = 'tile eng';
+        t.className = 'tile turk';
         t.textContent = tile.text;
         t.dataset.id = tile.id;
         t.dataset.lang = tile.lang;
@@ -737,9 +701,10 @@
 
       // Aynı taraftan 2 seçim engelleme
       if (selectedTiles.length === 1) {
+        // Öncekine bak
         const prev = selectedTiles[0];
         if (prev.dataset.lang === tile.dataset.lang) {
-          // Önceki seçimi iptal et, yeni seçime izin ver
+          // Aynı taraftan seçim, önceki seçimi değiştir
           prev.style.backgroundColor = 'white';
           prev.style.color = 'black';
           selectedTiles = [];
@@ -748,6 +713,7 @@
 
       if (selectedTiles.length === 2) return;
 
+      // İkinci seçim sonrası ekle
       if (selectedTiles.length === 0 || selectedTiles.length === 1) {
         tile.style.backgroundColor = 'var(--accent)';
         tile.style.color = 'white';
@@ -800,34 +766,6 @@
       }
     }
 
-    // -------------- SIDEBAR TOGGLE -------------------
-    const container = document.getElementById('container');
-    const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
-
-    function saveSidebarState(show) {
-      localStorage.setItem(LS_SIDEBAR, show ? 'true' : 'false');
-    }
-    function loadSidebarState() {
-      const s = localStorage.getItem(LS_SIDEBAR);
-      return s === null ? true : s === 'true';
-    }
-
-    function applySidebarState(show) {
-      if (show) {
-        container.classList.remove('sidebar-hidden');
-        toggleSidebarBtn.textContent = 'Kelimeler Panelini Gizle';
-      } else {
-        container.classList.add('sidebar-hidden');
-        toggleSidebarBtn.textContent = 'Kelimeler Panelini Göster';
-      }
-    }
-
-    toggleSidebarBtn.addEventListener('click', () => {
-      const isVisible = !container.classList.contains('sidebar-hidden');
-      applySidebarState(!isVisible);
-      saveSidebarState(!isVisible);
-    });
-
     // -------- BUTTON EVENTS --------
 
     document.getElementById('loadSheet').addEventListener('click', () => {
@@ -842,12 +780,17 @@
 
     document.getElementById('shuffle').addEventListener('click', () => {
       if (words.length <= 10) {
+        // 10'dan az kelime varsa tümü ile devam
         matchWordsSet = [...words];
       } else {
+        // 10 kelime seç
+        // Önce mevcut set dışındakilerden rastgele 10 seç
         const currentIds = new Set(matchWordsSet.map((w) => w.english + '|' + w.turkish));
         const candidates = words.filter((w) => !currentIds.has(w.english + '|' + w.turkish));
         shuffleArray(candidates);
         const newSet = candidates.slice(0, 10);
+
+        // Eğer yeni set 10'dan az ise kalanları mevcut setten tamamla
         if (newSet.length < 10) {
           const needed = 10 - newSet.length;
           const existing = matchWordsSet.slice(0, needed);
@@ -856,6 +799,7 @@
           matchWordsSet = newSet;
         }
       }
+      // Reset
       score = 0;
       matchedCount = 0;
       currentIndex = 0;
@@ -955,8 +899,6 @@
     window.onload = () => {
       loadWordsFromLS();
       loadProgress();
-      const showSidebar = loadSidebarState();
-      applySidebarState(showSidebar);
       updateModeButtons();
       render();
     };
