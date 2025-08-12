@@ -1,0 +1,968 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Kelime Kartları - Flash & Match</title>
+  <style>
+    :root {
+      --bg: #e0e7ff;
+      --card: #f9fafb;
+      --muted: #64748b;
+      --accent: #fb923c;
+      --accent2: #f97316;
+      --text-dark: #1e293b;
+      --shadow: rgba(0,0,0,0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue';
+      margin: 0;
+      background: linear-gradient(180deg, #dbeafe 0%, #bfdbfe 100%);
+      color: var(--text-dark);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      gap: 8px;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin: 0;
+      font-weight: 700;
+    }
+
+    small {
+      color: var(--muted);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      flex: 1;
+      min-width: 280px;
+    }
+
+    label {
+      font-weight: 600;
+    }
+
+    input, select {
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background: white;
+      color: var(--text-dark);
+      font-size: 14px;
+      flex: 1;
+      min-width: 220px;
+    }
+
+    button {
+      background: var(--accent);
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      font-size: 14px;
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    button:hover {
+      background: var(--accent2);
+    }
+
+    button.ghost {
+      background: transparent;
+      border: 1px solid #cbd5e1;
+      color: var(--muted);
+      padding: 6px 10px;
+      font-weight: 500;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    button.ghost:hover {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    button.selected {
+      background-color: var(--accent2);
+      color: white;
+      box-shadow: 0 0 8px var(--accent2);
+    }
+
+    .panel {
+      background: var(--card);
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 10px var(--shadow);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 16px;
+      transition: all 0.3s ease;
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .list {
+      max-height: 360px;
+      overflow-y: auto;
+      padding: 8px;
+      display: grid;
+      gap: 8px;
+      background: #f1f5f9;
+      border-radius: 10px;
+    }
+
+    .list-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: white;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      align-items: center;
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+
+    .list-item div span {
+      font-weight: 400;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .status {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 14px;
+      user-select: none;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      background: #1e293bcc;
+      padding: 12px 16px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 600;
+      font-size: 14px;
+      z-index: 9999;
+      display: none;
+    }
+
+    /* Flashcard styles */
+    .flashcard {
+      width: 280px;
+      height: 180px;
+      perspective: 1000px;
+      margin: 20px auto 0 auto;
+      cursor: pointer;
+    }
+
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      background: white;
+    }
+
+    .card-inner.flipped {
+      transform: rotateY(180deg);
+    }
+
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+      backface-visibility: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 34px;
+      font-weight: 700;
+      user-select: none;
+      padding: 16px;
+      text-align: center;
+      box-sizing: border-box;
+      color: var(--text-dark);
+      background: var(--card);
+      box-shadow: inset 0 0 15px rgba(0,0,0,0.05);
+    }
+
+    .card-back {
+      transform: rotateY(180deg);
+      color: var(--accent2);
+      background: #ffedd5;
+      box-shadow: inset 0 0 15px rgba(251,146,60,0.3);
+    }
+
+    /* Flashcard button container */
+    .flash-buttons {
+      width: 280px;
+      margin: 12px auto 0 auto;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .flash-buttons button {
+      font-size: 18px;
+      padding: 10px 18px;
+      border-radius: 10px;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Iconları Unicode ile */
+    .icon-left::before {
+      content: "<";
+      font-weight: 700;
+    }
+    .icon-right::after {
+      content: ">";
+      font-weight: 700;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        flex-direction: column;
+        min-width: auto;
+      }
+
+      .list {
+        max-height: 240px;
+      }
+    }
+
+    footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    /* Match grid columns */
+    #board {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 24px;
+    }
+
+    .tile {
+      padding: 16px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.07);
+      text-align: center;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.3s, color 0.3s;
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Solda İngilizce */
+    #board .tile.eng {
+      order: 0;
+    }
+    /* Sağda Türkçe */
+    #board .tile.turk {
+      order: 1;
+    }
+
+    /* Sağdaki kelimeler paneli gizleme durumu */
+    .sidebar-hidden .grid {
+      grid-template-columns: 1fr !important;
+    }
+    .sidebar-hidden aside {
+      display: none;
+    }
+
+    /* Toggle panel button */
+    #toggleSidebarBtn {
+      background: var(--accent2);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      user-select: none;
+      cursor: pointer;
+      color: white;
+      border: none;
+      margin-left: 12px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background-color 0.3s;
+    }
+    #toggleSidebarBtn:hover {
+      background: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="container">
+    <header>
+      <div>
+        <h1>Kelime Kartları</h1>
+        <small>Türkçe ↔ English — Flashcards & Matching (basit)</small>
+      </div>
+      <div class="controls">
+        <label for="sheetUrl">Google Sheet CSV URL:</label>
+        <input id="sheetUrl" placeholder="(opsiyonel) Publish to web -> CSV URL" />
+        <button id="loadSheet">Yükle</button>
+        <button id="toggleSidebarBtn" title="Kelime Listesini Göster/Gizle">Kelimeler Paneli</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <main>
+        <div class="panel">
+          <div class="row" style="gap: 12px; flex-wrap: wrap;">
+            <button id="modeFlash" class="">Flashcard Modu</button>
+            <button id="modeMatch" class="">Eşleştirme Modu</button>
+            <button id="shuffle">Karıştır</button>
+            <input id="filter" placeholder="Ara..." style="flex-grow:1; min-width:120px;" />
+            <div style="margin-left:auto;display:flex;gap:12px;align-items:center;min-width:130px;">
+              <div id="scoreDisplay" class="status">Puan: 0</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="mainArea" class="panel">
+          <!-- İçerik JS ile doldurulacak -->
+        </div>
+
+      </main>
+
+      <aside id="sidebarPanel">
+        <div class="panel" style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <strong>Kelimeler</strong>
+            <div class="row">
+              <button id="exportBtn" class="ghost">Export JSON</button>
+              <button id="clearProgress" class="ghost">Sıfırla</button>
+            </div>
+          </div>
+          <div class="list" id="wordList"></div>
+        </div>
+
+        <div class="panel">
+          <strong>Import CSV</strong>
+          <p style="color:var(--muted);font-size:13px; margin-top:4px; margin-bottom:8px;">
+            CSV: english,turkish başlık satırı olabilir.
+          </p>
+          <input type="file" id="fileInput" accept="text/csv,application/vnd.ms-excel" />
+        </div>
+      </aside>
+    </div>
+
+    <footer>
+      Deploy için: GitHub Pages — repo'ya bu index.html'i koyun.<br />
+      Google Sheet -> File &gt; Publish to web &gt; CSV seçin ve URL'yi kutuya yapıştırın.
+    </footer>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // ------------------ CONFIG ------------------
+    let sheetCsvUrl = '';
+    const defaultWords = [
+      { english: 'hello', turkish: 'merhaba' },
+      { english: 'goodbye', turkish: 'hoşçakal' },
+      { english: 'please', turkish: 'lütfen' },
+      { english: 'thank you', turkish: 'teşekkür ederim' },
+      { english: 'water', turkish: 'su' }
+    ];
+
+    // ------------------ APP STATE ------------------
+    let words = [];
+    let mode = ''; // başlangıçta boş, mod seçilmeli
+    let currentIndex = 0;
+    let selectedTiles = [];
+    let matchedCount = 0;
+    let score = 0;
+
+    // Local storage keys
+    const LS_WORDS = 'kk_words_v1';
+    const LS_PROGRESS = 'kk_progress_v1';
+    const LS_SIDEBAR = 'kk_sidebar_visible';
+
+    let matchWordsSet = [];
+
+    // ------------------ UTIL ------------------
+    function showToast(txt, timeout = 2500) {
+      const t = document.getElementById('toast');
+      t.textContent = txt;
+      t.style.display = 'block';
+      setTimeout(() => (t.style.display = 'none'), timeout);
+    }
+
+    function saveWordsToLS() {
+      localStorage.setItem(LS_WORDS, JSON.stringify(words));
+    }
+    function loadWordsFromLS() {
+      const s = localStorage.getItem(LS_WORDS);
+      if (s) words = JSON.parse(s);
+    }
+
+    function saveProgress() {
+      const p = { currentIndex, mode };
+      localStorage.setItem(LS_PROGRESS, JSON.stringify(p));
+    }
+    function loadProgress() {
+      const s = localStorage.getItem(LS_PROGRESS);
+      if (s) {
+        const p = JSON.parse(s);
+        currentIndex = p.currentIndex || 0;
+        mode = p.mode || '';
+      }
+    }
+
+    function updateScoreDisplay() {
+      const el = document.getElementById('scoreDisplay');
+      if (el) el.textContent = 'Puan: ' + score;
+    }
+
+    // ------------------ CSV Parser (basit) ------------------
+    function parseCSV(text) {
+      const rows = text
+        .split(/\r?\n/)
+        .map((r) => r.trim())
+        .filter((r) => r.length);
+      const result = [];
+      let start = 0;
+      const first = rows[0].split(',').map((c) => c.trim().toLowerCase());
+      if (first.includes('english') || first.includes('turkish')) start = 1;
+      for (let i = start; i < rows.length; i++) {
+        const cols = rows[i].split(',');
+        if (cols.length < 2) continue;
+        result.push({ english: cols[0].trim(), turkish: cols[1].trim() });
+      }
+      return result;
+    }
+
+    // ------------------ LOADERS ------------------
+    async function loadFromCsvUrl(url) {
+      try {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error('Fetch failed: ' + r.status);
+        const txt = await r.text();
+        const parsed = parseCSV(txt);
+        if (parsed.length === 0) throw new Error('Parsed 0 rows');
+        words = parsed;
+        saveWordsToLS();
+        showToast('CSV yüklendi: ' + words.length + ' kelime');
+        render();
+      } catch (e) {
+        console.error(e);
+        showToast('CSV yüklenemedi: ' + e.message);
+      }
+    }
+
+    // ------------------ RENDER ------------------
+    function render() {
+      document.getElementById('sheetUrl').value = sheetCsvUrl;
+      renderList();
+      updateScoreDisplay();
+
+      updateModeButtons();
+
+      if (!mode) {
+        document.getElementById('mainArea').innerHTML =
+          '<div style="text-align:center; padding:40px; color: var(--muted); font-size: 18px;">Lütfen mod seçin</div>';
+        saveWordsToLS();
+        saveProgress();
+        return;
+      }
+
+      if (mode === 'flash') renderFlash();
+      else if (mode === 'match') renderMatch();
+
+      saveWordsToLS();
+      saveProgress();
+    }
+
+    function renderList() {
+      const list = document.getElementById('wordList');
+      list.innerHTML = '';
+      const filter = document.getElementById('filter').value.toLowerCase();
+      words.forEach((w, i) => {
+        if (filter) {
+          if (!(w.english.toLowerCase().includes(filter) || w.turkish.toLowerCase().includes(filter))) return;
+        }
+        const el = document.createElement('div');
+        el.className = 'list-item';
+        el.innerHTML = `<div>${w.english} — <span>${w.turkish}</span></div><div><button data-i="${i}" class="ghost">Sil</button></div>`;
+        list.appendChild(el);
+      });
+      list.querySelectorAll('button.ghost').forEach((b) => {
+        b.addEventListener('click', (e) => {
+          const i = +e.target.dataset.i;
+          words.splice(i, 1);
+          saveWordsToLS();
+          render();
+        });
+      });
+    }
+
+    // ----------- FLASHCARD RENDER -----------
+    function renderFlash() {
+      const area = document.getElementById('mainArea');
+      area.innerHTML = '';
+      if (words.length === 0) {
+        area.innerHTML = '<div style="text-align:center; padding:40px;">Veri yok. CSV yükleyin veya import edin.</div>';
+        return;
+      }
+      const list = words;
+
+      // Kart oluştur
+      const card = document.createElement('div');
+      card.className = 'flashcard';
+
+      const inner = document.createElement('div');
+      inner.className = 'card-inner';
+
+      // Ön yüz: İngilizce
+      const front = document.createElement('div');
+      front.className = 'card-front';
+      front.textContent = list[currentIndex].english;
+
+      // Arka yüz: Türkçe
+      const back = document.createElement('div');
+      back.className = 'card-back';
+      back.textContent = list[currentIndex].turkish;
+
+      inner.appendChild(front);
+      inner.appendChild(back);
+      card.appendChild(inner);
+      area.appendChild(card);
+
+      // Kart tıklama ile dönme
+      card.onclick = () => {
+        inner.classList.toggle('flipped');
+      };
+
+      // Butonlar container
+      const btnContainer = document.createElement('div');
+      btnContainer.className = 'flash-buttons';
+
+      // Back buton
+      const backBtn = document.createElement('button');
+      backBtn.innerHTML = '<span class="icon-left"></span> Back';
+      backBtn.onclick = (e) => {
+        e.stopPropagation();
+        currentIndex = (currentIndex - 1 + words.length) % words.length;
+        inner.classList.remove('flipped');
+        front.textContent = words[currentIndex].english;
+        back.textContent = words[currentIndex].turkish;
+      };
+
+      // Next buton
+      const nextBtn = document.createElement('button');
+      nextBtn.innerHTML = 'Next <span class="icon-right"></span>';
+      nextBtn.onclick = (e) => {
+        e.stopPropagation();
+        currentIndex = (currentIndex + 1) % words.length;
+        inner.classList.remove('flipped');
+        front.textContent = words[currentIndex].english;
+        back.textContent = words[currentIndex].turkish;
+      };
+
+      btnContainer.appendChild(backBtn);
+      btnContainer.appendChild(nextBtn);
+      area.appendChild(btnContainer);
+    }
+
+    // ----------- MATCH RENDER -----------
+    function renderMatch() {
+      const area = document.getElementById('mainArea');
+      area.innerHTML = '';
+
+      if (words.length === 0) {
+        area.innerHTML = '<div style="text-align:center; padding:40px;">Veri yok. CSV yükleyin veya import edin.</div>';
+        return;
+      }
+
+      score = 0;
+      matchedCount = 0;
+      selectedTiles = [];
+      updateScoreDisplay();
+
+      // Eğer matchWordsSet boşsa ilk 10 kelimeyi seç
+      if (matchWordsSet.length === 0) {
+        matchWordsSet = words.slice(0, 10);
+      }
+
+      // Tile objeleri: {id, text, lang, cls}
+      // Solda Türkçe, sağda İngilizce (istenen: solda Türkçe, sağda İngilizce)
+
+      const turkishTiles = matchWordsSet.map((w, idx) => ({
+        id: idx,
+        text: w.turkish,
+        lang: 'tur',
+        cls: 'turk'
+      }));
+
+      const englishTiles = matchWordsSet.map((w, idx) => ({
+        id: idx,
+        text: w.english,
+        lang: 'eng',
+        cls: 'eng'
+      }));
+
+      // Karıştır
+      shuffleArray(turkishTiles);
+      shuffleArray(englishTiles);
+
+      // Board container (grid 2 sütun)
+      const board = document.createElement('div');
+      board.id = 'board';
+
+      // Sütun 1 - Türkçe
+      const leftCol = document.createElement('div');
+      leftCol.style.display = 'flex';
+      leftCol.style.flexDirection = 'column';
+      leftCol.style.gap = '10px';
+
+      turkishTiles.forEach((tile) => {
+        const t = document.createElement('div');
+        t.className = 'tile turk';
+        t.textContent = tile.text;
+        t.dataset.id = tile.id;
+        t.dataset.lang = tile.lang;
+        t.style.background = 'white';
+        t.style.borderRadius = '12px';
+        t.style.boxShadow = '0 4px 12px rgba(0,0,0,0.07)';
+        t.style.cursor = 'pointer';
+        t.style.padding = '14px';
+        t.style.textAlign = 'center';
+        t.style.fontWeight = '700';
+        t.style.userSelect = 'none';
+        t.style.transition = 'background-color 0.3s, color 0.3s';
+
+        t.addEventListener('click', onTileClick);
+        leftCol.appendChild(t);
+      });
+
+      // Sütun 2 - İngilizce
+      const rightCol = document.createElement('div');
+      rightCol.style.display = 'flex';
+      rightCol.style.flexDirection = 'column';
+      rightCol.style.gap = '10px';
+
+      englishTiles.forEach((tile) => {
+        const t = document.createElement('div');
+        t.className = 'tile eng';
+        t.textContent = tile.text;
+        t.dataset.id = tile.id;
+        t.dataset.lang = tile.lang;
+        t.style.background = 'white';
+        t.style.borderRadius = '12px';
+        t.style.boxShadow = '0 4px 12px rgba(0,0,0,0.07)';
+        t.style.cursor = 'pointer';
+        t.style.padding = '14px';
+        t.style.textAlign = 'center';
+        t.style.fontWeight = '700';
+        t.style.userSelect = 'none';
+        t.style.transition = 'background-color 0.3s, color 0.3s';
+
+        t.addEventListener('click', onTileClick);
+        rightCol.appendChild(t);
+      });
+
+      board.appendChild(leftCol);
+      board.appendChild(rightCol);
+
+      area.appendChild(board);
+    }
+
+    // --------- Tile click event -----------
+    function onTileClick(e) {
+      if (words.length === 0) return;
+      const tile = e.currentTarget;
+
+      // Aynı taraftan 2 seçim engelleme
+      if (selectedTiles.length === 1) {
+        const prev = selectedTiles[0];
+        if (prev.dataset.lang === tile.dataset.lang) {
+          // Önceki seçimi iptal et, yeni seçime izin ver
+          prev.style.backgroundColor = 'white';
+          prev.style.color = 'black';
+          selectedTiles = [];
+        }
+      }
+
+      if (selectedTiles.length === 2) return;
+
+      if (selectedTiles.length === 0 || selectedTiles.length === 1) {
+        tile.style.backgroundColor = 'var(--accent)';
+        tile.style.color = 'white';
+        selectedTiles.push(tile);
+      }
+
+      if (selectedTiles.length === 2) {
+        const id1 = selectedTiles[0].dataset.id;
+        const id2 = selectedTiles[1].dataset.id;
+        const lang1 = selectedTiles[0].dataset.lang;
+        const lang2 = selectedTiles[1].dataset.lang;
+
+        if (id1 === id2 && lang1 !== lang2) {
+          // Doğru eşleştirme
+          score += 10;
+          updateScoreDisplay();
+          matchedCount++;
+
+          selectedTiles.forEach((t) => {
+            t.style.backgroundColor = '#bbf7d0';
+            t.style.color = '#15803d';
+            t.style.pointerEvents = 'none';
+          });
+          selectedTiles = [];
+
+          if (matchedCount === matchWordsSet.length) {
+            showToast('Tebrikler! Tüm eşleştirmeler tamamlandı.');
+          }
+        } else {
+          // Yanlış eşleştirme
+          score = Math.max(0, score - 3);
+          updateScoreDisplay();
+
+          setTimeout(() => {
+            selectedTiles.forEach((t) => {
+              t.style.backgroundColor = 'white';
+              t.style.color = 'black';
+            });
+            selectedTiles = [];
+          }, 800);
+        }
+      }
+    }
+
+    // Fisher-Yates shuffle
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    // -------------- SIDEBAR TOGGLE -------------------
+    const container = document.getElementById('container');
+    const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+
+    function saveSidebarState(show) {
+      localStorage.setItem(LS_SIDEBAR, show ? 'true' : 'false');
+    }
+    function loadSidebarState() {
+      const s = localStorage.getItem(LS_SIDEBAR);
+      return s === null ? true : s === 'true';
+    }
+
+    function applySidebarState(show) {
+      if (show) {
+        container.classList.remove('sidebar-hidden');
+        toggleSidebarBtn.textContent = 'Kelimeler Panelini Gizle';
+      } else {
+        container.classList.add('sidebar-hidden');
+        toggleSidebarBtn.textContent = 'Kelimeler Panelini Göster';
+      }
+    }
+
+    toggleSidebarBtn.addEventListener('click', () => {
+      const isVisible = !container.classList.contains('sidebar-hidden');
+      applySidebarState(!isVisible);
+      saveSidebarState(!isVisible);
+    });
+
+    // -------- BUTTON EVENTS --------
+
+    document.getElementById('loadSheet').addEventListener('click', () => {
+      const url = document.getElementById('sheetUrl').value.trim();
+      if (!url) {
+        showToast('CSV URL giriniz.');
+        return;
+      }
+      sheetCsvUrl = url;
+      loadFromCsvUrl(url);
+    });
+
+    document.getElementById('shuffle').addEventListener('click', () => {
+      if (words.length <= 10) {
+        matchWordsSet = [...words];
+      } else {
+        const currentIds = new Set(matchWordsSet.map((w) => w.english + '|' + w.turkish));
+        const candidates = words.filter((w) => !currentIds.has(w.english + '|' + w.turkish));
+        shuffleArray(candidates);
+        const newSet = candidates.slice(0, 10);
+        if (newSet.length < 10) {
+          const needed = 10 - newSet.length;
+          const existing = matchWordsSet.slice(0, needed);
+          matchWordsSet = [...newSet, ...existing];
+        } else {
+          matchWordsSet = newSet;
+        }
+      }
+      score = 0;
+      matchedCount = 0;
+      currentIndex = 0;
+      render();
+    });
+
+    document.getElementById('filter').addEventListener('input', () => {
+      renderList();
+    });
+
+    document.getElementById('modeFlash').addEventListener('click', () => {
+      if (mode !== 'flash') {
+        mode = 'flash';
+        currentIndex = 0;
+        score = 0;
+        render();
+        updateModeButtons();
+      }
+    });
+
+    document.getElementById('modeMatch').addEventListener('click', () => {
+      if (mode !== 'match') {
+        mode = 'match';
+        currentIndex = 0;
+        score = 0;
+        render();
+        updateModeButtons();
+      }
+    });
+
+    function updateModeButtons() {
+      const flashBtn = document.getElementById('modeFlash');
+      const matchBtn = document.getElementById('modeMatch');
+      flashBtn.classList.toggle('selected', mode === 'flash');
+      matchBtn.classList.toggle('selected', mode === 'match');
+    }
+
+    // Dosya import
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (ev) {
+        const text = ev.target.result;
+        const parsed = parseCSV(text);
+        if (parsed.length === 0) {
+          showToast('Dosya içinde kelime bulunamadı.');
+          return;
+        }
+        words = parsed;
+        matchWordsSet = [];
+        saveWordsToLS();
+        render();
+        showToast('Dosyadan ' + words.length + ' kelime yüklendi.');
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    // Export JSON
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      if (words.length === 0) {
+        showToast('İhrac edilecek kelime yok.');
+        return;
+      }
+      const json = JSON.stringify(words, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'kelimeler.json';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 0);
+    });
+
+    // Clear progress & words
+    document.getElementById('clearProgress').addEventListener('click', () => {
+      if (confirm('Tüm kelimeler ve ilerlemeler silinsin mi?')) {
+        words = [];
+        mode = '';
+        currentIndex = 0;
+        selectedTiles = [];
+        matchedCount = 0;
+        score = 0;
+        sheetCsvUrl = '';
+        render();
+        saveWordsToLS();
+        showToast('Veriler sıfırlandı.');
+      }
+    });
+
+    // ---------------- INIT -----------------
+    window.onload = () => {
+      loadWordsFromLS();
+      loadProgress();
+      const showSidebar = loadSidebarState();
+      applySidebarState(showSidebar);
+      updateModeButtons();
+      render();
+    };
+  </script>
+</body>
+</html>
