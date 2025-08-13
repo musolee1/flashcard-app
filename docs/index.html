@@ -47,8 +47,24 @@
     .card-front,.card-back{ position:absolute; width:100%; height:100%; border-radius:12px; backface-visibility:hidden; display:flex; align-items:center; justify-content:center; padding:18px; text-align:center; font-size:26px; font-weight:700 }
     .card-back{ transform:rotateY(180deg); background:#fff7ed; color:var(--accent2) }
     .flash-buttons{ display:flex;justify-content:center;align-items:center;gap:12px;margin-top:10px }
-    .mid-shuffle-btn{ background:transparent;border:0;cursor:pointer;padding:8px;border-radius:8px;display:flex;align-items:center;justify-content:center }
-
+    .mid-shuffle-btn {
+      background: var(--accent);
+      /* turuncu dolgu */
+      color: #fff;
+      /* icon/buton yazısı beyaz */
+      border: 0;
+      padding: 8px 10px;
+      min-width: 44px;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      box-shadow: 0 6px 14px rgba(2, 6, 23, 0.10);
+      cursor: pointer;
+      z-index: 3;
+      /* panelin üzerinde ama aşırı yüksek değil */
+    }   
     /* match board: always two columns */
     #board{
       display:grid;
